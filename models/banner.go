@@ -19,16 +19,6 @@ type BannerWithDetails struct {
 	UpdatedAt *time.Time             `db:"updated_at"`
 }
 
-//type BannerWithDetails struct {
-//	BannerID  int                    `db:"id"`         // Исправлено на "id" для соответствия столбцу banners.id
-//	TagIDs    []int64                `db:"tag_ids"`    // Исправлено для соответствия результату array_agg
-//	FeatureID *int                   `db:"feature_id"` // Исправлено для соответствия столбцу banner_features.feature_id
-//	Content   map[string]interface{} `db:"content"`    // Исправлено для соответствия столбцу banners.content
-//	Status    *bool                  `db:"status"`     // Исправлено для соответствия столбцу banners.status
-//	CreatedAt *time.Time             `db:"created_at"` // Исправлено для соответствия столбцу banners.created_at
-//	UpdatedAt *time.Time             `db:"updated_at"` // Исправлено для соответствия столбцу banners.updated_at
-//}
-
 type ChangeBannerRequest struct {
 	NewTagIDs    []int64                 `json:"new_tag_ids,omitempty"`
 	NewFeatureID int64                   `json:"new_feature_id,omitempty"`

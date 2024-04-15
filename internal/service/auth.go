@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -18,7 +19,7 @@ func NewAuthService(storage *storage.Storage) *AuthService {
 	}
 }
 
-func (a *AuthService) Authentication(user models.User) (models.Token, error) {
+func (a *AuthService) Authentication(ctx context.Context, user models.User) (models.Token, error) {
 	const op = "service.Authentication"
 
 	user.Password = HashPassword(user.Password)
@@ -38,7 +39,7 @@ func (a *AuthService) Authentication(user models.User) (models.Token, error) {
 	}, nil
 }
 
-func (a *AuthService) CreateUser(newUser models.NewUser) error {
+func (a *AuthService) CreateUser(ctx context.Context, newUser models.NewUser) error {
 	const op = "service.CreateUser"
 
 	newUser.Password = HashPassword(newUser.Password)

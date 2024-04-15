@@ -4,6 +4,11 @@ import (
 	"github.com/fishmanDK/avito_test_task/internal/service"
 	"github.com/gin-gonic/gin"
 	"log/slog"
+	"time"
+)
+
+const (
+	contextTimeResponse = 50 * time.Millisecond
 )
 
 type Handlers struct {
@@ -27,14 +32,14 @@ func (h *Handlers) InitRouts() *gin.Engine {
 		auth.POST("/sign-up", h.signUp)
 	}
 
-	//router.Use(h.authMiddleware)
+	router.Use(h.authMiddleware)
 	router.GET("/user_banner", h.GetUserBanner)
 
 	router.POST("/tag", h.CreateTag)
 	router.POST("/feature", h.CreateFeature)
 
 	banner := router.Group("/banner")
-	//banner.Use(h.isAdminMiddleware)
+	banner.Use(h.isAdminMiddleware)
 	{
 		banner.GET("", h.GetBanners)
 		banner.POST("", h.CreateBanner)

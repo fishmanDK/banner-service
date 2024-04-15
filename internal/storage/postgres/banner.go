@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func (p *Postgres) GetBannersWithDetails(params models.GetAllBannersParams) ([]models.BannerWithDetails, error) {
+func (p *Postgres) GetBannersWithDetails(params models.GetAllBannersParams) ([]*models.BannerWithDetails, error) {
 	const op = "postgres.GetBannersWithDetails"
 
 	query := `
@@ -50,11 +50,11 @@ func (p *Postgres) GetBannersWithDetails(params models.GetAllBannersParams) ([]m
 
 	rows, err := p.db.Queryx(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("%s:%d", op, err)
+		return nil, fmt.Errorf("%s:%w", op, err)
 	}
 	defer rows.Close()
 
-	var bannersWithDetails []models.BannerWithDetails
+	var bannersWithDetails []*models.BannerWithDetails
 	for rows.Next() {
 		var banner models.BannerWithDetails
 		var contentBytes []byte
@@ -63,22 +63,22 @@ func (p *Postgres) GetBannersWithDetails(params models.GetAllBannersParams) ([]m
 		var createdAt, updatedAt time.Time
 		err := rows.Scan(&banner.BannerID, &banner.FeatureID, pq.Array(&tagIDs), &contentBytes, &status, &createdAt, &updatedAt)
 		if err != nil {
-			return nil, fmt.Errorf("%s:%d", op, err)
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		err = json.Unmarshal(contentBytes, &banner.Content)
 		if err != nil {
-			return nil, fmt.Errorf("%s:%d", op, err)
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 
 		banner.TagIDs = tagIDs
 		banner.Status = &status
 		banner.CreatedAt = &createdAt
 		banner.UpdatedAt = &updatedAt
-		bannersWithDetails = append(bannersWithDetails, banner)
+		bannersWithDetails = append(bannersWithDetails, &banner)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("%s:%d", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return bannersWithDetails, nil
@@ -91,24 +91,23 @@ func (p *Postgres) CreateBanner(newBanner models.CreateBannerRequest) error {
 
 	tx, err := p.db.Begin()
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	defer tx.Rollback()
 
-	// TODO: insert is_active
-	query := "INSERT INTO banners (content, status) VALUES ($1, $2) RETURNING id;"
+	query := "INSERT INTO banners (content, status, status) VALUES ($1, $2, $3) RETURNING id;"
 
 	var bannerId int
-	err = tx.QueryRow(query, newBannerContent, newBanner.IsActive).Scan(&bannerId)
+	err = tx.QueryRow(query, newBannerContent, newBanner.IsActive, newBanner.IsActive).Scan(&bannerId)
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	if newBanner.FeatureID != "" {
 		query = "INSERT INTO banner_features (banner_id, feature_id) VALUES ($1, $2);"
 		_, err := tx.Exec(query, bannerId, newBanner.FeatureID)
 		if err != nil {
-			return fmt.Errorf("%s: %v", op, err)
+			return fmt.Errorf("%s: %w", op, err)
 		}
 	}
 
@@ -117,14 +116,14 @@ func (p *Postgres) CreateBanner(newBanner models.CreateBannerRequest) error {
 		for _, tagId := range newBanner.TagIds {
 			_, err = tx.Exec(query, bannerId, tagId)
 			if err != nil {
-				return fmt.Errorf("%s: %v", op, err)
+				return fmt.Errorf("%s: %w", op, err)
 			}
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil
@@ -135,7 +134,7 @@ func (p *Postgres) ChangeBanner(bannerID int64, req models.ChangeBannerRequest) 
 
 	tx, err := p.db.Begin()
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	defer tx.Rollback()
 
@@ -144,18 +143,18 @@ func (p *Postgres) ChangeBanner(bannerID int64, req models.ChangeBannerRequest) 
 		query := "UPDATE banners SET content = $1, status = $2 WHERE id = $3"
 		newContentJSON, err := json.Marshal(req.NewContent)
 		if err != nil {
-			return fmt.Errorf("%s: %v", op, err)
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		_, err = tx.Exec(query, newContentJSON, req.NewIsActive, bannerID)
 		if err != nil {
-			return fmt.Errorf("%s: %v", op, err)
+			return fmt.Errorf("%s: %w", op, err)
 		}
 	} else if req.NewContent == nil && (req.NewIsActive || !req.NewIsActive) {
 		query := "UPDATE banners SET status = $1 WHERE id = $2"
 		_, err = tx.Exec(query, req.NewIsActive, bannerID)
 		if err != nil {
-			return fmt.Errorf("%s: %v", op, err)
+			return fmt.Errorf("%s: %w", op, err)
 		}
 	}
 
@@ -166,7 +165,7 @@ func (p *Postgres) ChangeBanner(bannerID int64, req models.ChangeBannerRequest) 
 		`
 		_, err = tx.Exec(query, bannerID)
 		if err != nil {
-			return fmt.Errorf("%s: %v", op, err)
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		query = `
@@ -177,7 +176,7 @@ func (p *Postgres) ChangeBanner(bannerID int64, req models.ChangeBannerRequest) 
 		for _, tagID := range req.NewTagIDs {
 			_, err := tx.Exec(query, bannerID, tagID)
 			if err != nil {
-				return fmt.Errorf("%s: %v", op, err)
+				return fmt.Errorf("%s: %w", op, err)
 			}
 		}
 	}
@@ -190,7 +189,7 @@ func (p *Postgres) ChangeBanner(bannerID int64, req models.ChangeBannerRequest) 
 
 		_, err = tx.Exec(query, bannerID)
 		if err != nil {
-			return fmt.Errorf("%s: %v", op, err)
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		query = `
@@ -200,13 +199,13 @@ func (p *Postgres) ChangeBanner(bannerID int64, req models.ChangeBannerRequest) 
 
 		_, err = tx.Exec(query, bannerID, req.NewFeatureID)
 		if err != nil {
-			return fmt.Errorf("%s: %v", op, err)
+			return fmt.Errorf("%s: %w", op, err)
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil
@@ -222,13 +221,13 @@ func (p *Postgres) DeleteBanner(bannerID int64) error {
 
 	tx, err := p.db.Begin()
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	defer tx.Rollback()
 
 	_, err = tx.Exec(query, bannerID)
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	query = `
@@ -238,7 +237,7 @@ func (p *Postgres) DeleteBanner(bannerID int64) error {
 
 	_, err = tx.Exec(query, bannerID)
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	query = `
@@ -248,12 +247,12 @@ func (p *Postgres) DeleteBanner(bannerID int64) error {
 
 	_, err = tx.Exec(query, bannerID)
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil
@@ -272,13 +271,13 @@ func (p *Postgres) DeleteBannerByParams(tagID, featureID int64) error {
 
 	tx, err := p.db.Begin()
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	defer tx.Rollback()
 	var bannerId int
 	err = tx.QueryRow(query, tagID, featureID).Scan(&bannerId)
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	query = `
@@ -288,7 +287,7 @@ func (p *Postgres) DeleteBannerByParams(tagID, featureID int64) error {
 
 	_, err = tx.Exec(query, bannerId)
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	query = `
@@ -298,7 +297,7 @@ func (p *Postgres) DeleteBannerByParams(tagID, featureID int64) error {
 
 	_, err = tx.Exec(query, bannerId)
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	query = `
@@ -308,12 +307,12 @@ func (p *Postgres) DeleteBannerByParams(tagID, featureID int64) error {
 
 	_, err = tx.Exec(query, bannerId)
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil
@@ -333,7 +332,7 @@ func (p *Postgres) CheckBanner(bannerID, tagID, featureID int64) error {
 		var resultID int64
 		err := p.db.Get(&resultID, query, tagID, featureID)
 		if err != nil {
-			return fmt.Errorf("%s: %v", op, err)
+			return fmt.Errorf("%s: %w", op, err)
 		}
 		return nil
 	} else {
@@ -344,7 +343,7 @@ func (p *Postgres) CheckBanner(bannerID, tagID, featureID int64) error {
 		var resultID int64
 		err := p.db.Get(&resultID, query, bannerID)
 		if err != nil {
-			return fmt.Errorf("%s: %v", op, err)
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		return nil

@@ -8,6 +8,7 @@ import (
 	"github.com/fishmanDK/avito_test_task/internal/handlers"
 	"github.com/fishmanDK/avito_test_task/internal/service"
 	"github.com/fishmanDK/avito_test_task/internal/storage"
+	"github.com/fishmanDK/avito_test_task/internal/storage/cash_redis"
 	"log"
 	"log/slog"
 	"net/http"
@@ -27,13 +28,15 @@ func main() {
 
 	logger := setupLogger(envLocal)
 	logger.Info("setup logger", cfg)
+
+	cash, err := cash_redis.NewCashRedis()
 	db, err := storage.MustStorage(cfg.Postgres)
 	if err != nil {
 		logger.Error("error setup storage", err)
 		panic(err)
 	}
 
-	srvс, err := service.NewService(logger, cfg.Clients, db)
+	srvс, err := service.NewService(logger, cfg.Clients, db, cash)
 	if err != nil {
 		logger.Error("error setup service", err)
 		panic(err)
@@ -58,14 +61,14 @@ func main() {
 		}
 	}()
 
-	rq, err := rabbitmq.NewRabbitMQConsumer(srvс.DeleteService) // Замените на адрес вашего сервера NATS
+	rq, err := rabbitmq.NewRabbitMQConsumer(srvс.DeleteService)
 	if err != nil {
-		log.Fatalf("Failed to create NUTS: %v", err)
+		log.Fatalf("Failed to create NUTS: %w", err)
 	}
 	logger.Info("start RabbitMQ")
 	go func() {
 		if err := rq.SubscribeAndReadMessage(); err != nil {
-			log.Printf("Error subscribing and reading messages: %v", err)
+			log.Printf("Error subscribing and reading messages: %w", err)
 		}
 	}()
 

@@ -24,12 +24,12 @@ func (d *DeleteService) ScheduleDeleteBanner(ctx context.Context, bannerID, tagI
 
 	err := d.storage.DB.CheckBanner(bannerID, tagID, featureID)
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	status, err := d.triggerHookClient.ScheduleDeletion(ctx, bannerID, tagID, featureID)
 	if err != nil || !status {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil
@@ -40,7 +40,7 @@ func (bm *DeleteService) DeleteBanner(bannerID int64) error {
 
 	err := bm.storage.DB.DeleteBanner(bannerID)
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil
@@ -51,7 +51,7 @@ func (bm *DeleteService) DeleteBannerByParams(tagID, featuresID int64) error {
 
 	err := bm.storage.DB.DeleteBannerByParams(tagID, featuresID)
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil

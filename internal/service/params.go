@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"github.com/fishmanDK/avito_test_task/internal/storage"
 	"github.com/fishmanDK/avito_test_task/models"
@@ -16,23 +17,23 @@ func NewParamsManager(storage *storage.Storage) *ParamsManager {
 	}
 }
 
-func (pm *ParamsManager) CreateTag(tag models.Tag) error {
+func (pm *ParamsManager) CreateTag(ctx context.Context, tag models.Tag) error {
 	const op = "service.CreateTag"
 
 	err := pm.storage.DB.CreateTag(tag)
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil
 }
 
-func (pm *ParamsManager) CreateFeature(feature models.Feature) error {
+func (pm *ParamsManager) CreateFeature(ctx context.Context, feature models.Feature) error {
 	const op = "service.CreateFeature"
 
 	err := pm.storage.DB.CreateFeature(feature)
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil

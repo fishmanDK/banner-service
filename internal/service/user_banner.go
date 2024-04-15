@@ -1,43 +1,53 @@
 package service
 
 import (
+	"context"
+	"fmt"
 	"github.com/fishmanDK/avito_test_task/internal/storage"
+	"github.com/fishmanDK/avito_test_task/internal/storage/cash_redis"
 	"github.com/fishmanDK/avito_test_task/models"
 )
 
 type UserBannerManager struct {
 	storage *storage.Storage
+	cash    *cash_redis.CashRedis
 }
 
-func NewUserBannerManager(storage *storage.Storage) *UserBannerManager {
+func NewUserBannerManager(storage *storage.Storage, cash *cash_redis.CashRedis) *UserBannerManager {
 	return &UserBannerManager{
 		storage: storage,
+		cash:    cash,
 	}
 }
 
-func (ubm *UserBannerManager) GetUserBanner(params models.UserBanner) (*models.BannerWithDetails, error) {
+func (ubm *UserBannerManager) GetUserBanner(ctx context.Context, params models.UserBanner) (*models.BannerWithDetails, error) {
+	const op = "service.GetUserBanner"
 	if params.UseLastRevision {
 		banner, err := ubm.storage.DB.GetUserBanner(params)
 		if err != nil {
-			// TODO: logger
-			return nil, err
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+
+		err = ubm.cash.SaveBanner(banner)
+		if err != nil {
+			fmt.Errorf("%s: %w", op, err)
 		}
 
 		return banner, nil
 	} else {
-		cash_banner, err := ubm.storage.Cash.CashGetUserBanner()
+		cashBanner, err := ubm.storage.Cash.CashGetUserBanner()
 		if err != nil {
-			// TODO: logger
-			// если не нашел в кеше, то идем в базу
 			banner, err := ubm.storage.DB.GetUserBanner(params)
 			if err != nil {
-				// TODO: logger
-				return nil, err
+				return nil, fmt.Errorf("%s: %v", op, err)
+			}
+
+			err = ubm.cash.SaveBanner(banner)
+			if err != nil {
+				fmt.Errorf("%s: %v", op, err)
 			}
 			return banner, err
 		}
-		// TODO: если нет в кеше то идем в базу(сделать это правильно)
-		return cash_banner, err
-
+		return cashBanner, err
 	}
 }

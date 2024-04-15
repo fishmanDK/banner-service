@@ -11,10 +11,11 @@ type CashBannerOperations interface {
 }
 
 type CashRedis struct {
-	Cash *redis.Client
+	client *redis.Client
 }
 
 func NewCashRedis() (*CashRedis, error) {
+	// TODO: config redis
 	const op = "cash_redis.NewCashRedis"
 	client := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
@@ -28,6 +29,6 @@ func NewCashRedis() (*CashRedis, error) {
 	}
 
 	return &CashRedis{
-		Cash: client,
+		client: client,
 	}, nil
 }

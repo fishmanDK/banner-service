@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"github.com/fishmanDK/avito_test_task/models"
 	"github.com/gin-gonic/gin"
@@ -17,7 +18,10 @@ func (h *Handlers) CreateTag(c *gin.Context) {
 		return
 	}
 
-	err := h.Service.ParamsOperations.CreateTag(input)
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeResponse)
+	defer cancel()
+
+	err := h.Service.ParamsOperations.CreateTag(ctx, input)
 	if err != nil {
 		h.Logger.Error("Error creating banner: ", fmt.Errorf("%s: %v", op, err))
 		newErrorResponse(c, http.StatusInternalServerError, internalServerError)
@@ -37,7 +41,10 @@ func (h *Handlers) CreateFeature(c *gin.Context) {
 		return
 	}
 
-	err := h.Service.ParamsOperations.CreateFeature(input)
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeResponse)
+	defer cancel()
+
+	err := h.Service.ParamsOperations.CreateFeature(ctx, input)
 	if err != nil {
 		h.Logger.Error("Error creating banner: ", fmt.Errorf("%s: %v", op, err))
 		newErrorResponse(c, http.StatusInternalServerError, internalServerError)

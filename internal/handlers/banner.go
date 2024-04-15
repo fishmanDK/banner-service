@@ -71,7 +71,10 @@ func (h *Handlers) GetBanners(c *gin.Context) {
 		params.Offset = offsetPtr
 	}
 
-	banners, err := h.Service.GetBanners(params)
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeResponse)
+	defer cancel()
+
+	banners, err := h.Service.GetBanners(ctx, params)
 	if err != nil {
 		h.Logger.Error("Error getting banners: ", fmt.Errorf("%s: %v", op, err))
 		newErrorResponse(c, http.StatusBadRequest, incorrectData)
@@ -104,8 +107,10 @@ func (h *Handlers) CreateBanner(c *gin.Context) {
 		newErrorResponse(c, http.StatusBadRequest, incorrectData)
 		return
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeResponse)
+	defer cancel()
 
-	err = h.Service.BannerOperations.CreateBanner(input)
+	err = h.Service.BannerOperations.CreateBanner(ctx, input)
 	if err != nil {
 		h.Logger.Error("Error creating banner: ", fmt.Errorf("%s: %v", op, err))
 		newErrorResponse(c, http.StatusInternalServerError, internalServerError)
@@ -139,7 +144,10 @@ func (h *Handlers) PatchBanner(c *gin.Context) {
 		return
 	}
 
-	err = h.Service.BannerOperations.ChangeBanner(bannerID, input)
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeResponse)
+	defer cancel()
+
+	err = h.Service.BannerOperations.ChangeBanner(ctx, bannerID, input)
 	if err != nil {
 		h.Logger.Error("Error changing banner: ", err)
 		newErrorResponse(c, http.StatusInternalServerError, internalServerError)
@@ -166,7 +174,10 @@ func (h *Handlers) DeleteBanner(c *gin.Context) {
 		return
 	}
 
-	err = h.Service.DeleteService.ScheduleDeleteBanner(context.Background(), bannerID, 0, 0)
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeResponse)
+	defer cancel()
+
+	err = h.Service.DeleteService.ScheduleDeleteBanner(ctx, bannerID, 0, 0)
 	if err != nil {
 		h.Logger.Error("Error deleting banner: ", fmt.Errorf("%s: %v", op, err))
 		newErrorResponse(c, http.StatusBadRequest, incorrectData)
@@ -205,7 +216,10 @@ func (h *Handlers) DeleteBannerByParams(c *gin.Context) {
 		return
 	}
 
-	err = h.Service.DeleteService.ScheduleDeleteBanner(context.Background(), 0, tagID, featureID)
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeResponse)
+	defer cancel()
+
+	err = h.Service.DeleteService.ScheduleDeleteBanner(ctx, 0, tagID, featureID)
 	if err != nil {
 		h.Logger.Error("Error deleting banner: ", fmt.Errorf("%s: %v", op, err))
 		newErrorResponse(c, http.StatusBadRequest, incorrectData)

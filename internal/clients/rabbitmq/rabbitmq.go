@@ -2,7 +2,6 @@ package rabbitmq
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/fishmanDK/avito_test_task/internal/service"
 	"github.com/wagslane/go-rabbitmq"
 	"log"
@@ -66,7 +65,6 @@ func (rq *RabbitMQConsumer) SubscribeAndReadMessage() error {
 			log.Printf("Error unmarshalling message: %v", err)
 			return rabbitmq.NackRequeue
 		}
-		fmt.Println(msg)
 		if msg.BannerID != 0 {
 			err = rq.deleteBannerService.DeleteBanner(msg.BannerID)
 			if err != nil {

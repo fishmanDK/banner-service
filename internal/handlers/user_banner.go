@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"github.com/fishmanDK/avito_test_task/models"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -39,7 +40,10 @@ func (h *Handlers) GetUserBanner(c *gin.Context) {
 		req.UseLastRevision = true
 	}
 
-	banner, err := h.Service.GetUserBanner(req)
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeResponse)
+	defer cancel()
+
+	banner, err := h.Service.GetUserBanner(ctx, req)
 	if err != nil {
 		h.Logger.Error("error storage", err)
 		newErrorResponse(c, http.StatusBadRequest, incorrectData)
